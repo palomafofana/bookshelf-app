@@ -1,13 +1,15 @@
+// types/book.ts
+
 export interface GoodreadsBook {
   bookId: string;
-  title:  string;
+  title: string;
   author: string;
   authorLastFirst: string;
   additionalAuthors: string;
-  isbn: string;
+  isbn:  string;
   isbn13: string;
   myRating: number;
-  averageRating: number;
+  averageRating:  number;
   publisher: string;
   binding: string;
   numberOfPages: number;
@@ -22,18 +24,13 @@ export interface GoodreadsBook {
   spoiler: string;
   privateNotes: string;
   readCount: number;
-  ownedCopies: number;
+  ownedCopies:  number;
 }
 
 export interface EnrichedBook extends GoodreadsBook {
-  spineImageUrl?: string;
-  coverImageUrl?: string;
-  accuratePageCount:  number;
+  accuratePageCount: number;
   spineWidth: number;
   yearRead?:  number;
-}
-
-export interface BookshelfFilters {
-  year:  string;
-  shelf: string;
+  coverImageUrl?: string;
+  spineImageUrl?: string;
 }

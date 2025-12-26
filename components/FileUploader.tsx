@@ -1,9 +1,8 @@
-// components/FileUploader. tsx
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { parseGoodreadsCSV } from '@/lib/parseGoodreadsCSV';
-import { calculateSpineWidth } from '@/lib/spineWidth';
+import { fetchBookCover } from '@/lib/bookCoverAPI';
 import { EnrichedBook, GoodreadsBook } from '@/types/book';
 
 interface FileUploaderProps {
@@ -12,153 +11,163 @@ interface FileUploaderProps {
 }
 
 export default function FileUploader({ onBooksLoaded, setIsLoading }: FileUploaderProps) {
-  const [isDragging, setIsDragging] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const processBooks = (goodreadsBooks: GoodreadsBook[]) => {
-    const enrichedBooks: EnrichedBook[] = goodreadsBooks.map((book) => {
-      const yearRead = book.dateRead 
-        ? new Date(book.dateRead).getFullYear() 
-        : undefined;
+  const enrichBookWithImages = async (book: GoodreadsBook): Promise<EnrichedBook> => {
+    let imageData = null;
 
-      return {
-        ...book,
-        accuratePageCount: book.numberOfPages,
-        spineWidth: calculateSpineWidth(book.numberOfPages),
-        yearRead,
-        // We'll add image fetching in the next step
-        coverImageUrl: undefined,
-        spineImageUrl:  undefined,
-      };
-    });
+    // Try ISBN13 first, then ISBN, then title/author
+    if (book.isbn13) {
+      imageData = await fetchBookCover(book.title, book.author, book.isbn13, undefined);
+    }
 
-    onBooksLoaded(enrichedBooks);
+    if (!imageData && book.isbn) {
+      imageData = await fetchBookCover(book.title, book.author, undefined, book.isbn);
+    }
+
+    if (!imageData) {
+      imageData = await fetchBookCover(book.title, book.author);
+    }
+
+    const yearRead = book.dateRead 
+      ? new Date(book. dateRead).getFullYear() 
+      : undefined;
+
+    return {
+      ...book,
+      accuratePageCount: book.numberOfPages,
+      spineWidth: Math.max(book.numberOfPages / 100, 20),
+      yearRead,
+      coverImageUrl:  imageData?. coverImageUrl,
+      spineImageUrl: imageData?.thumbnailUrl,
+    };
   };
 
   const handleFile = async (file: File) => {
-    setError(null);
-    setIsLoading(true);
-
     if (!file. name.endsWith('.csv')) {
       setError('Please upload a CSV file');
-      setIsLoading(false);
       return;
     }
 
     try {
+      setError(null);
+      setIsLoading(true);
+
       const books = await parseGoodreadsCSV(file);
       
-      if (books.length === 0) {
-        setError('No read books found in the CSV file');
-        setIsLoading(false);
-        return;
+      // Enrich books with cover images (in batches to avoid rate limiting)
+      const enrichedBooks:  EnrichedBook[] = [];
+      const batchSize = 5;
+      
+      for (let i = 0; i < books.length; i += batchSize) {
+        const batch = books.slice(i, i + batchSize);
+        const enrichedBatch = await Promise. all(
+          batch.map(book => enrichBookWithImages(book))
+        );
+        enrichedBooks.push(...enrichedBatch);
+        
+        // Small delay between batches
+        if (i + batchSize < books.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
 
-      processBooks(books);
+      onBooksLoaded(enrichedBooks);
     } catch (err) {
-      setError('Error parsing CSV file. Please make sure it\'s a valid Goodreads export.');
-      setIsLoading(false);
+      setError('Failed to parse CSV file.  Please make sure it\'s a valid Goodreads export.');
       console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrag = useCallback((e: React. DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
-
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFile(file);
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
     }
-  };
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((e: React. DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
-  };
+    e.stopPropagation();
+    setDragActive(false);
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFile(file);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer. files[0]);
     }
-  };
+  }, []);
 
-  const handleClick = () => {
-    fileInputRef.current?.click();
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
   };
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div
-        onClick={handleClick}
+      <form
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
         onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        className={`
-          border-4 border-dashed rounded-xl p-12 text-center cursor-pointer
-          transition-all duration-200
-          ${isDragging 
-            ? 'border-amber-500 bg-amber-50' 
-            : 'border-amber-300 bg-white hover: border-amber-400 hover:bg-amber-50'
-          }
-        `}
+        className="relative"
       >
         <input
-          ref={fileInputRef}
           type="file"
+          id="file-upload"
           accept=".csv"
-          onChange={handleFileSelect}
+          onChange={handleChange}
           className="hidden"
         />
-
-        <div className="space-y-4">
-          <svg
-            className="mx-auto h-16 w-16 text-amber-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-            />
-          </svg>
-
-          <div>
-            <p className="text-xl font-semibold text-amber-900 mb-2">
-              Upload your Goodreads Library
+        <label
+          htmlFor="file-upload"
+          className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+            dragActive
+              ? 'border-green-500 bg-green-500 bg-opacity-10'
+              : 'border-gray-600 bg-[#2a2a2a] hover:bg-[#3a3a3a]'
+          }`}
+        >
+          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <svg
+              className="w-12 h-12 mb-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+              />
+            </svg>
+            <p className="mb-2 text-sm text-gray-400">
+              <span className="font-semibold">Click to upload</span> or drag and drop
             </p>
-            <p className="text-sm text-amber-700 mb-4">
-              Drag and drop your CSV file here, or click to browse
-            </p>
-            <p className="text-xs text-amber-600">
-              Export your library from Goodreads:  My Books → Import and export → Export Library
-            </p>
+            <p className="text-xs text-gray-500">Goodreads CSV export file</p>
           </div>
-        </div>
-      </div>
+        </label>
+      </form>
 
       {error && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-700 text-sm">{error}</p>
+        <div className="mt-4 p-4 bg-red-900 bg-opacity-20 border border-red-500 rounded-lg text-red-400 text-sm">
+          {error}
         </div>
       )}
 
-      <div className="mt-8 bg-amber-50 rounded-lg p-6 border border-amber-200">
-        <h3 className="font-semibold text-amber-900 mb-2">How to export from Goodreads:</h3>
-        <ol className="list-decimal list-inside space-y-1 text-sm text-amber-800">
-          <li>Go to <a href="https://www.goodreads.com/review/import" target="_blank" rel="noopener noreferrer" className="underline">goodreads.com/review/import</a></li>
-          <li>Click "Export Library" button</li>
-          <li>Wait for the email with your CSV file</li>
-          <li>Download the CSV and upload it here</li>
+      <div className="mt-6 text-sm text-gray-400">
+        <p className="mb-2">How to export your Goodreads library:</p>
+        <ol className="list-decimal list-inside space-y-1 text-xs">
+          <li>Go to Goodreads.com and log in</li>
+          <li>Click "My Books" in the top menu</li>
+          <li>Click "Import and export" at the top</li>
+          <li>Click "Export Library" and download the CSV</li>
         </ol>
       </div>
     </div>

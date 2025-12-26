@@ -1,5 +1,3 @@
-// lib/calculateSpineWidth.ts
-
 export const calculateSpineWidth = (pageCount: number): number => {
   const MIN_WIDTH = 12; 
   const MAX_WIDTH = 80; 
