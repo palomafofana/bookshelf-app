@@ -6,9 +6,11 @@ import { EnrichedBook } from '@/types/book';
 
 interface BookPlaylistProps {
   books: EnrichedBook[];
+  playlistTitle?:  string;
+  username?:  string;
 }
 
-export default function BookPlaylist({ books }: BookPlaylistProps) {
+export default function BookPlaylist({ books, playlistTitle = 'My Reading List', username = 'Reader' }: BookPlaylistProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Calculate total pages
@@ -48,12 +50,12 @@ export default function BookPlaylist({ books }: BookPlaylistProps) {
             {/* Playlist Info */}
             <div className="flex-1 pb-6">
               <p className="text-sm font-semibold mb-2">Public Playlist</p>
-              <h1 className="text-7xl font-black mb-6">My Reading List</h1>
+              <h1 className="text-7xl font-black mb-6">{playlistTitle}</h1>
               <div className="flex items-center gap-2 text-sm">
                 <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center">
                   <span className="text-xs">👤</span>
                 </div>
-                <span className="font-semibold">palomaa</span>
+                 <span className="font-semibold">{username}</span>
                 <span>•</span>
                 <span>{totalBooks} books, {totalPages. toLocaleString()} pages</span>
               </div>
@@ -103,9 +105,6 @@ export default function BookPlaylist({ books }: BookPlaylistProps) {
                   <path d="m21 21-4.35-4.35" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               </div>
-              <button className="text-gray-400 hover:text-white text-sm font-medium">
-                Custom order
-              </button>
             </div>
           </div>
         </div>
@@ -118,12 +117,7 @@ export default function BookPlaylist({ books }: BookPlaylistProps) {
           <div className="text-center">#</div>
           <div>Title</div>
           <div>Author</div>
-          <div className="flex items-center justify-end">
-            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8z"/>
-              <path d="M8 3.5a. 5.5 0 0 1 . 5.5v4a.5.5 0 0 1-1 0V4a.5.5 0 0 1 .5-. 5z"/>
-            </svg>
-          </div>
+          <div className="text-right pr-8">Pages</div>
         </div>
 
         {/* Table Rows */}
@@ -157,7 +151,7 @@ export default function BookPlaylist({ books }: BookPlaylistProps) {
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-xs">
-                      📖
+
                     </div>
                   )}
                 </div>
