@@ -8,9 +8,19 @@ interface BookPlaylistProps {
   books: EnrichedBook[];
   playlistTitle?:  string;
   username?:  string;
+  profile?: any; 
+  showShareModal?:  boolean;
+  setShowShareModal?: (show: boolean) => void;
 }
 
-export default function BookPlaylist({ books, playlistTitle = 'My Reading List', username = 'Reader' }: BookPlaylistProps) {
+export default function BookPlaylist({ 
+  books, 
+  playlistTitle = 'My Reading List', 
+  username = 'Reader',
+  profile,
+  showShareModal:  externalShowShareModal,
+  setShowShareModal: externalSetShowShareModal 
+}: BookPlaylistProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddBook, setShowAddBook] = useState(false);
   const [newBook, setNewBook] = useState({
