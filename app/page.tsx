@@ -28,6 +28,9 @@ export default function Home() {
   const [searchUsername, setSearchUsername] = useState('');
   const { user, profile, loading:  authLoading, signOut } = useAuth();
   const router = useRouter();
+  const [showCompareModal, setShowCompareModal] = useState(false);
+  const [compareUsername, setCompareUsername] = useState('');
+  const [isComparing, setIsComparing] = useState(false);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -152,27 +155,29 @@ export default function Home() {
     setPlaylistTitle('All Books');
   };
 
-  const handleCreateNewPlaylist = async () => {
-    if (!user || !profile) return;
+  const handleCreateNewPlaylist = () => {
+    setShowCompareModal(true);
+    setCompareUsername('');
+  };
 
-    const friendUsername = prompt('Enter username to compare with: ');
-    if (!friendUsername || ! friendUsername.trim()) return;
+  const handleCompareLibraries = async () => {
+    if (! user || !profile || !compareUsername. trim()) return;
 
     try {
-      setIsLoading(true);
+      setIsComparing(true);
       
       const { supabase } = await import('@/lib/supabase');
       
       // Get friend's profile
-      const { data: friendProfile, error: friendError } = await supabase
+      const { data: friendProfile, error:  friendError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('username', friendUsername. trim())
+        .eq('username', compareUsername. trim())
         .single();
 
       if (friendError || !friendProfile) {
-        alert(`User "${friendUsername}" not found`);
-        setIsLoading(false);
+        alert(`User "${compareUsername}" not found`);
+        setIsComparing(false);
         return;
       }
 
@@ -208,13 +213,13 @@ export default function Home() {
       });
 
       if (commonBooks.length === 0) {
-        alert(`No books in common with ${friendUsername}`);
-        setIsLoading(false);
+        alert(`No books in common with ${compareUsername}`);
+        setIsComparing(false);
         return;
       }
 
       // Create shelf name
-      const shelfName = `${profile.username} × ${friendUsername}`;
+      const shelfName = `${profile.username} × ${compareUsername}`;
 
       // Check if shelf already exists
       const { data: existingShelf } = await supabase
@@ -265,6 +270,10 @@ export default function Home() {
         if (relError) throw relError;
       }
 
+      // Close modal
+      setShowCompareModal(false);
+      setCompareUsername('');
+
       // Reload user data to show the new shelf
       await loadUserData();
       
@@ -275,9 +284,9 @@ export default function Home() {
       
     } catch (error:  any) {
       console.error('Error creating comparison:', error);
-      alert(`Error: ${error.message || 'Failed to create comparison'}`);
+      alert(`Error:  ${error.message || 'Failed to create comparison'}`);
     } finally {
-      setIsLoading(false);
+      setIsComparing(false);
     }
   };
 
@@ -391,6 +400,67 @@ export default function Home() {
           )}
         </main>
       </div>
+
+      {/* Compare Libraries Modal */}
+      {showCompareModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-[#282828] rounded-lg p-8 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">Compare Libraries</h2>
+              <button
+                onClick={() => {
+                  setShowCompareModal(false);
+                  setCompareUsername('');
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Enter username to compare with
+                </label>
+                <input
+                  type="text"
+                  value={compareUsername}
+                  onChange={(e) => setCompareUsername(e.target.value)}
+                  placeholder="username"
+                  className="w-full px-4 py-3 bg-[#181818] text-white rounded border border-gray-700 focus:border-purple-500 focus:outline-none"
+                  autoFocus
+                  onKeyPress={(e) => e.key === 'Enter' && handleCompareLibraries()}
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  This will create a new playlist with all books you have in common
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowCompareModal(false);
+                    setCompareUsername('');
+                  }}
+                  className="flex-1 px-6 py-3 text-gray-400 hover:text-white border border-gray-600 hover:border-white rounded-full transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCompareLibraries}
+                  disabled={! compareUsername.trim() || isComparing}
+                  className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-full transition"
+                >
+                  {isComparing ? 'Comparing...' : 'Compare'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

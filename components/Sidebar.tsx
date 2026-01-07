@@ -27,6 +27,7 @@ export default function Sidebar({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [shelvesExpanded, setShelvesExpanded] = useState(true);
   const [yearsExpanded, setYearsExpanded] = useState(true);
+  const [friendsExpanded, setFriendsExpanded] = useState(true);
 
   return (
     <aside
@@ -61,13 +62,13 @@ export default function Sidebar({
         <button
           onClick={onSelectAllBooks}
           className={`w-full text-left px-4 py-3 rounded hover:bg-[#282828] transition flex items-center gap-3 ${
-            currentView === 'all' ?  'bg-[#282828]' : ''
+            currentView === 'all' ?   'bg-[#282828]' : ''
           }`}
         >
           <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
-          {! isCollapsed && <span>All Books</span>}
+          {!  isCollapsed && <span>All Books</span>}
         </button>
 
         {/* 5-Star Favorites */}
@@ -77,11 +78,74 @@ export default function Sidebar({
             currentView === '5-stars' ? 'bg-[#282828]' : ''
           }`}
         >
-          <svg className="w-5 h-5 flex-shrink-0 text-purple-500" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-. 61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          <svg className="w-5 h-5 flex-shrink-0 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
           </svg>
           {!isCollapsed && <span>5 Star Reads</span>}
         </button>
+
+        <div className="h-px bg-gray-800 my-4" />
+        
+        {/* Friends Section */}
+        <div className="mb-4">
+          <button
+            onClick={() => setFriendsExpanded(!friendsExpanded)}
+            className="w-full flex items-center justify-between px-4 py-2 hover: bg-[#282828] rounded transition"
+          >
+            {! isCollapsed && (
+              <>
+                <span className="text-sm font-semibold text-gray-400">Friends</span>
+                <svg
+                  className={`w-4 h-4 transition-transform ${
+                    friendsExpanded ? 'rotate-0' : '-rotate-90'
+                  }`}
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+                </svg>
+              </>
+            )}
+            {isCollapsed && (
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+              </svg>
+            )}
+          </button>
+
+          {friendsExpanded && (
+            <div className="mt-1 space-y-1">
+              {/* Compare Libraries Button */}
+              <button
+                onClick={onCreateNewPlaylist}
+                className="w-full text-left px-4 py-2 rounded hover:bg-[#282828] transition text-sm flex items-center gap-3 text-blue-400 hover:text-blue-300"
+              >
+                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+                </svg>
+                {! isCollapsed && <span>Compare Libraries</span>}
+              </button>
+
+              {/* Friend Comparison Playlists */}
+              {bookshelves
+                .filter(shelf => shelf. name.includes(' × '))
+                .map((shelf) => (
+                  <button
+                    key={shelf.id}
+                    onClick={() => onSelectShelf(shelf. name)}
+                    className={`w-full text-left px-4 py-2 rounded hover: bg-[#282828] transition text-sm flex items-center gap-3 ${
+                      currentView === `shelf-${shelf.name}` ? 'bg-[#282828] text-blue-500' : 'text-gray-300'
+                    }`}
+                  >
+                    <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+                    </svg>
+                    {!isCollapsed && <span className="truncate">{shelf.name}</span>}
+                  </button>
+                ))}
+            </div>
+          )}
+        </div>
 
         <div className="h-px bg-gray-800 my-4" />
 
@@ -95,14 +159,14 @@ export default function Sidebar({
               <>
                 <span className="text-sm font-semibold text-gray-400">Shelves</span>
                 <svg
-                  className={`w-4 h-4 transition-transform ${
-                    shelvesExpanded ? 'rotate-0' : '-rotate-90'
-                  }`}
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M7. 41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
-                </svg>
+                className={`w-4 h-4 transition-transform ${
+                  shelvesExpanded ? 'rotate-0' : '-rotate-90'
+                }`}
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+              </svg>
               </>
             )}
             {isCollapsed && (
@@ -114,16 +178,6 @@ export default function Sidebar({
 
           {shelvesExpanded && (
             <div className="mt-1 space-y-1">
-              {/* Compare Libraries Button */}
-              <button
-                onClick={onCreateNewPlaylist}
-                className="w-full text-left px-4 py-2 rounded hover:bg-[#282828] transition text-sm flex items-center gap-3 text-blue-400 hover:text-blue-300"
-              >
-                <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-. 29 0-.62.02-. 97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-                </svg>
-                {! isCollapsed && <span>Compare Libraries</span>}
-              </button>
 
               {/* Existing Shelves */}
               {bookshelves.map((shelf) => (
@@ -143,6 +197,8 @@ export default function Sidebar({
             </div>
           )}
         </div>
+
+        <div className="h-px bg-gray-800 my-4" />
 
         {/* Years Section */}
         <div>
