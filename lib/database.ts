@@ -151,6 +151,7 @@ export const getUserBooks = async (userId: string): Promise<EnrichedBook[]> => {
     yearRead: book.year_read,
     coverImageUrl: book.cover_image_url,
     spineImageUrl: book.cover_image_url,
+    friendRating: book.friend_rating || 0,
   }));
 };
 

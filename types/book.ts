@@ -32,6 +32,7 @@ export interface EnrichedBook extends GoodreadsBook {
   yearRead?:  number;
   coverImageUrl?: string;
   spineImageUrl?: string;
+  friendRating?: number;
 }
 
 // Database types
@@ -72,6 +73,7 @@ export interface Book {
   owned_copies?: number;
   created_at:  string;
   updated_at:  string;
+  friend_rating?: number;
 }
 
 export interface Bookshelf {

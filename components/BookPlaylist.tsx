@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { EnrichedBook } from '@/types/book';
 
 interface BookPlaylistProps {
-  books: EnrichedBook[];
+  books:  EnrichedBook[];
   playlistTitle?:  string;
   username?:  string;
   profile?: any; 
@@ -37,6 +37,8 @@ export default function BookPlaylist({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [previewCover, setPreviewCover] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const isFriendsPlaylist = !!profile?.isFriend;
+  console.log('Friend playlist check:', { isFriendsPlaylist, profile, username });
 
   // Calculate total pages
   const totalPages = books.reduce((sum, book) => sum + (book.numberOfPages || 0), 0);
@@ -397,19 +399,27 @@ export default function BookPlaylist({
       {/* Table Section */}
       <div className="container mx-auto px-8 py-6">
         {/* Table Header */}
-        <div className="grid grid-cols-[16px_4fr_2fr_1fr_40px] gap-4 px-4 py-2 text-sm text-gray-400 border-b border-gray-800 mb-2">
-          <div className="text-center">#</div>
-          <div>Title</div>
-          <div>Author</div>
-          <div className="text-right pr-8">Pages</div>
-        </div>
+      <div className={`grid ${isFriendsPlaylist ? 'grid-cols-[16px_4fr_2fr_1fr_56px_56px_40px]' : 'grid-cols-[16px_4fr_2fr_1fr_56px_40px]'} gap-4 pl-8 pr-4 py-2 text-sm text-gray-400 border-b border-gray-800 mb-2`}>
+        <div className="text-center">#</div>
+        <div>Title</div>
+        <div className="flex items-center justify-start pl-2">Author</div>
+        <div className="pl-2">Pages</div>
+        {isFriendsPlaylist ? (
+          <>
+            <div className="text-center">Your rating</div>
+            <div className="text-center">{`${username}'s rating`}</div>
+          </>
+        ) : (
+          <div className="text-center">Rating</div>
+        )}
+      </div>
 
         {/* Table Rows */}
         <div className="space-y-1">
           {filteredBooks.map((book, index) => (
             <div
               key={book.bookId}
-              className="grid grid-cols-[16px_4fr_2fr_1fr_40px] gap-4 px-4 py-2 rounded hover:bg-[#2a2a2a] group transition relative"
+              className={`grid ${isFriendsPlaylist ? 'grid-cols-[16px_4fr_2fr_1fr_56px_56px_40px]' : 'grid-cols-[16px_4fr_2fr_1fr_56px_40px]'} gap-4 pl-8 pr-4 py-2 rounded hover:bg-[#2a2a2a] group transition relative`}
             >
               {/* Index */}
               <div className="text-gray-400 text-sm flex items-center justify-center group-hover:hidden">
@@ -422,7 +432,7 @@ export default function BookPlaylist({
               </div>
 
               {/* Title & Cover */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 flex-shrink-0 bg-gray-800 relative">
                   {book.coverImageUrl ? (
                     <Image
@@ -445,14 +455,33 @@ export default function BookPlaylist({
               </div>
 
               {/* Author */}
-              <div className="flex items-center text-gray-400 text-sm truncate">
+              <div className="flex items-center justify-start text-gray-400 text-sm truncate min-w-0 pl-2">
                 {book.author}
               </div>
 
               {/* Pages */}
-              <div className="flex items-center justify-end text-gray-400 text-sm">
-                {book.numberOfPages ?  `${book.numberOfPages} pages` : '-'}
+              <div className="flex items-center justify-start text-gray-400 text-sm pl-2">
+                {book.numberOfPages ? `${book.numberOfPages} pages` : '-'}
               </div>
+
+              {/* Rating */}
+              {isFriendsPlaylist ? (
+                <>
+                  {/* Your rating (viewer) */}
+                  <div className="flex items-center justify-center text-gray-400 text-sm">
+                    {book.myRating ? `${book.myRating}☆` : '-'}
+                  </div>
+
+                  {/* Friend / playlist owner's rating */}
+                  <div className="flex items-center justify-center text-gray-400 text-sm">
+                    {book.friendRating ? `${book.friendRating}☆` : '-'}
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-center text-gray-400 text-sm">
+                  {book.myRating ? `${book.myRating}☆` : '-'}
+                </div>
+              )}
 
               {/* Three Dots Menu */}
               <div className="flex items-center justify-center">

@@ -31,6 +31,7 @@ export default function Home() {
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [compareUsername, setCompareUsername] = useState('');
   const [isComparing, setIsComparing] = useState(false);
+  const [isComparisonPlaylist, setIsComparisonPlaylist] = useState(false);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -89,21 +90,24 @@ export default function Home() {
     }
   };
 
-  const handleSelectShelf = async (shelfName: string) => {
+  const handleSelectShelf = async (shelfName:  string) => {
     if (!user) return;
     
     setIsLoading(true);
-    try {
-      const shelfBooks = await getBooksByShelf(user.id, shelfName);
-      setBooks(shelfBooks);
-      setCurrentView(`shelf-${shelfName}`);
-      setPlaylistTitle(shelfName);
-    } catch (error) {
-      console.error('Error loading shelf:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      try {
+        const shelfBooks = await getBooksByShelf(user.id, shelfName);
+        setBooks(shelfBooks);
+        setCurrentView(`shelf-${shelfName}`);
+        setPlaylistTitle(shelfName);
+        
+        // Check if this is a comparison shelf (contains ' × ')
+        setIsComparisonPlaylist(shelfName.includes(' × ')); 
+      } catch (error) {
+        console.error('Error loading shelf:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
   const handleSelectYear = async (year: number) => {
     if (!user) return;
@@ -114,6 +118,7 @@ export default function Home() {
       setBooks(yearBooks);
       setCurrentView(`year-${year}`);
       setPlaylistTitle(`Books from ${year}`);
+      setIsComparisonPlaylist(false);
     } catch (error) {
       console.error('Error loading year:', error);
     } finally {
@@ -142,6 +147,7 @@ export default function Home() {
       setBooks(fiveStarBooks);
       setCurrentView('5-stars');
       setPlaylistTitle('5 Star Reads');
+      setIsComparisonPlaylist(false);
     } catch (error) {
       console.error('Error loading 5-star books:', error);
     } finally {
@@ -153,6 +159,7 @@ export default function Home() {
     setBooks(allBooks);
     setCurrentView('all');
     setPlaylistTitle('All Books');
+    setIsComparisonPlaylist(false);
   };
 
   const handleCreateNewPlaylist = () => {
@@ -199,16 +206,20 @@ export default function Home() {
 
       // Find books in common
       const commonBooks:  any[] = [];
-      
+
       yourBooks?.forEach(yourBook => {
         const matchingBook = theirBooks?.find(
           theirBook => 
             yourBook.title. toLowerCase().trim() === theirBook.title.toLowerCase().trim() &&
-            yourBook.author. toLowerCase().trim() === theirBook.author.toLowerCase().trim()
+            yourBook.author.toLowerCase().trim() === theirBook.author.toLowerCase().trim()
         );
 
         if (matchingBook) {
-          commonBooks.push(yourBook);
+          // Store both your rating and their rating
+          commonBooks.push({
+            ...yourBook,
+            friendRating: matchingBook.my_rating  // ← ADD THE FRIEND'S RATING
+          });
         }
       });
 
@@ -223,7 +234,7 @@ export default function Home() {
 
       // Check if shelf already exists
       const { data: existingShelf } = await supabase
-        . from('bookshelves')
+        .from('bookshelves')
         .select('*')
         .eq('user_id', user.id)
         .eq('name', shelfName)
@@ -258,16 +269,23 @@ export default function Home() {
 
       // Add common books to the shelf
       const bookShelfRelations = commonBooks.map(book => ({
-        book_id: book.id,
+        book_id:   book.id,
         bookshelf_id: shelfId,
       }));
 
       if (bookShelfRelations.length > 0) {
-        const { error: relError } = await supabase
+        const { error:  relError } = await supabase
           .from('book_shelves')
           .insert(bookShelfRelations);
 
         if (relError) throw relError;
+
+        for (const book of commonBooks) {
+          await supabase
+            .from('books')
+            .update({ friend_rating: book.friendRating })
+            .eq('id', book.id);
+        }
       }
 
       // Close modal
@@ -279,6 +297,7 @@ export default function Home() {
       
       // Navigate to the new comparison shelf
       await handleSelectShelf(shelfName);
+      setIsComparisonPlaylist(true);
       
       alert(`Created playlist with ${commonBooks.length} books in common! `);
       
@@ -392,10 +411,13 @@ export default function Home() {
             </div>
           ) : (
             <BookPlaylist 
-            books={books} 
-            playlistTitle={playlistTitle} 
-            username={profile?.username}
-            profile={profile}
+              books={books} 
+              playlistTitle={playlistTitle} 
+              username={profile?.username}
+              profile={{
+                ...profile,
+                isFriend: isComparisonPlaylist
+              }}
             />
           )}
         </main>
